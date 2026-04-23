@@ -49,7 +49,7 @@ const PokemonCard = memo(({ pokemon, isSelected, isLoading, onToggle }: CardProp
   >
     {isLoading
       ? <div aria-hidden="true" className='w-8 h-8 border-2 border-gray-400 border-t-white rounded-full animate-spin mb-2' />
-      : <Image src={imageUrl(pokemon.url)} alt="" width={60} height={60} />
+      : <Image src={imageUrl(pokemon.url)} alt={pokemon.name} width={60} height={60} />
     }
     <span className='max-w-24 truncate'>{pokemon.name}</span>
   </div>
