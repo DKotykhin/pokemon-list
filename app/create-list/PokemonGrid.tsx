@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useEffect, useRef } from 'react';
+import { memo, useEffect, useMemo, useRef } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import type { Pokemon, SelectedPokemon, PokemonResponse } from './types';
 
@@ -20,13 +20,49 @@ const SkeletonCard = () => (
   </div>
 );
 
+interface CardProps {
+  pokemon: Pokemon;
+  isSelected: boolean;
+  isLoading: boolean;
+  onToggle: (pokemon: Pokemon) => void;
+}
+
+const PokemonCard = memo(({ pokemon, isSelected, isLoading, onToggle }: CardProps) => (
+  <div
+    role="button"
+    tabIndex={isLoading ? -1 : 0}
+    aria-pressed={isSelected}
+    aria-disabled={isLoading}
+    aria-busy={isLoading}
+    aria-label={`${pokemon.name}${isSelected ? ', selected' : ''}`}
+    className={`w-30 h-30 flex flex-col justify-center items-center p-4 border rounded-lg capitalize hover:scale-105 transition-all duration-300 cursor-pointer ${isSelected
+        ? 'border-white text-white'
+        : 'border-gray-400 text-gray-400 hover:border-white hover:text-white'
+      } ${isLoading ? 'opacity-60 pointer-events-none' : ''}`}
+    onClick={() => onToggle(pokemon)}
+    onKeyDown={e => {
+      if ((e.key === 'Enter' || e.key === ' ') && !isLoading) {
+        e.preventDefault();
+        onToggle(pokemon);
+      }
+    }}
+  >
+    {isLoading
+      ? <div aria-hidden="true" className='w-8 h-8 border-2 border-gray-400 border-t-white rounded-full animate-spin mb-2' />
+      : <Image src={imageUrl(pokemon.url)} alt="" width={60} height={60} />
+    }
+    <span className='max-w-24 truncate'>{pokemon.name}</span>
+  </div>
+));
+PokemonCard.displayName = 'PokemonCard';
+
 interface Props {
   selected: SelectedPokemon[];
   loadingNames: Set<string>;
   onToggle: (pokemon: Pokemon) => void;
 }
 
-export const PokemonGrid = ({ selected, loadingNames, onToggle }: Props) => {
+export const PokemonGrid = memo(({ selected, loadingNames, onToggle }: Props) => {
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   const { data, isLoading, error, fetchNextPage, hasNextPage, isFetchingNextPage } =
@@ -55,6 +91,7 @@ export const PokemonGrid = ({ selected, loadingNames, onToggle }: Props) => {
     return () => observer.disconnect();
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
+  const selectedNames = useMemo(() => new Set(selected.map(p => p.name)), [selected]);
   const allPokemon = data?.pages.flatMap(page => page.results) ?? [];
 
   return (
@@ -67,41 +104,17 @@ export const PokemonGrid = ({ selected, loadingNames, onToggle }: Props) => {
       >
         {isLoading
           ? Array.from({ length: LIMIT }).map((_, index) => (
-              <SkeletonCard key={index} />
-            ))
-          : allPokemon.map((pokemon: Pokemon) => {
-              const isSelected = selected.some(p => p.name === pokemon.name);
-              const isLoadingThis = loadingNames.has(pokemon.name);
-              return (
-                <div
-                  key={pokemon.name}
-                  role="button"
-                  tabIndex={isLoadingThis ? -1 : 0}
-                  aria-pressed={isSelected}
-                  aria-disabled={isLoadingThis}
-                  aria-busy={isLoadingThis}
-                  aria-label={`${pokemon.name}${isSelected ? ', selected' : ''}`}
-                  className={`w-30 h-30 flex flex-col justify-center items-center p-4 border rounded-lg capitalize hover:scale-105 transition-all duration-300 cursor-pointer ${
-                    isSelected
-                      ? 'border-white text-white'
-                      : 'border-gray-400 text-gray-400 hover:border-white hover:text-white'
-                  } ${isLoadingThis ? 'opacity-60 pointer-events-none' : ''}`}
-                  onClick={() => onToggle(pokemon)}
-                  onKeyDown={e => {
-                    if ((e.key === 'Enter' || e.key === ' ') && !isLoadingThis) {
-                      e.preventDefault();
-                      onToggle(pokemon);
-                    }
-                  }}
-                >
-                  {isLoadingThis
-                    ? <div aria-hidden="true" className='w-8 h-8 border-2 border-gray-400 border-t-white rounded-full animate-spin mb-2' />
-                    : <Image src={imageUrl(pokemon.url)} alt="" width={60} height={60} />
-                  }
-                  <span className='max-w-24 truncate'>{pokemon.name}</span>
-                </div>
-              );
-            })}
+            <SkeletonCard key={index} />
+          ))
+          : allPokemon.map((pokemon: Pokemon) => (
+            <PokemonCard
+              key={pokemon.name}
+              pokemon={pokemon}
+              isSelected={selectedNames.has(pokemon.name)}
+              isLoading={loadingNames.has(pokemon.name)}
+              onToggle={onToggle}
+            />
+          ))}
         {isFetchingNextPage &&
           Array.from({ length: LIMIT }).map((_, index) => (
             <SkeletonCard key={`next-${index}`} />
@@ -110,4 +123,5 @@ export const PokemonGrid = ({ selected, loadingNames, onToggle }: Props) => {
       </div>
     </>
   );
-};
+});
+PokemonGrid.displayName = 'PokemonGrid';

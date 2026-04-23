@@ -36,7 +36,9 @@ export const FileUpload = ({ onLoad, onError }: Props) => {
 
       const pokemon: SelectedPokemon[] = await Promise.all(
         data.pokemon.map(async (p) => {
-          const detail = await fetch(`${BASE_URL}/${p.pokemonApiId}`).then(r => r.json());
+          const res = await fetch(`${BASE_URL}/${p.pokemonApiId}`);
+          if (!res.ok) throw new Error(`Failed to fetch ${p.pokemonApiId}`);
+          const detail = await res.json();
           return {
             name: detail.name as string,
             url: `${BASE_URL}/${p.pokemonApiId}/`,

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { PokemonGrid } from './PokemonGrid';
@@ -19,8 +19,15 @@ export const PokemonList = () => {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
-  const toggleSelect = async (pokemon: Pokemon) => {
-    if (selected.some(p => p.name === pokemon.name)) {
+  const selectedRef = useRef(selected);
+  const detailCache = useRef<Map<string, { pokemonApiId: number; weight: number }>>(new Map());
+  
+  useEffect(() => {
+    selectedRef.current = selected;
+  }, [selected]);
+
+  const toggleSelect = useCallback(async (pokemon: Pokemon) => {
+    if (selectedRef.current.some(p => p.name === pokemon.name)) {
       setSelected(prev => prev.filter(p => p.name !== pokemon.name));
       return;
     }
@@ -30,8 +37,16 @@ export const PokemonList = () => {
     setLoadingNames(prev => new Set(prev).add(pokemon.name));
 
     try {
-      const detail = await fetch(`${BASE_URL}/${id}`).then(r => r.json());
-      setSelected(prev => [...prev, { ...pokemon, pokemonApiId, weight: detail.weight }]);
+      setSaveError(null);
+      let cached = detailCache.current.get(pokemon.name);
+      if (!cached) {
+        const res = await fetch(`${BASE_URL}/${id}`);
+        if (!res.ok) throw new Error(`Failed to fetch ${pokemon.name}`);
+        const detail = await res.json();
+        cached = { pokemonApiId, weight: detail.weight };
+        detailCache.current.set(pokemon.name, cached);
+      }
+      setSelected(prev => [...prev, { ...pokemon, ...cached }]);
     } catch {
       setSaveError(`Failed to load ${pokemon.name}. Please try again.`);
     } finally {
@@ -41,7 +56,7 @@ export const PokemonList = () => {
         return next;
       });
     }
-  };
+  }, []);
 
   const handleSave = () => {
     setSaveError(null);
