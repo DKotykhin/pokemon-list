@@ -32,7 +32,11 @@ export const PokemonList = () => {
       return;
     }
 
-    const id = pokemon.url.split('/').filter(Boolean).pop()!;
+    const id = pokemon.url.split('/').filter(Boolean).pop();
+    if (!id) {
+      setSaveError(`Invalid URL for ${pokemon.name}`);
+      return;
+    }
     const pokemonApiId = parseInt(id, 10);
     setLoadingNames(prev => new Set(prev).add(pokemon.name));
 
