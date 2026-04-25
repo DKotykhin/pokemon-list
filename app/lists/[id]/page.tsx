@@ -1,13 +1,10 @@
 export const dynamic = 'force-dynamic';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/app/lib/prisma';
 import { DownloadButton } from './DownloadButton';
-
-const spriteUrl = (pokemonApiId: number) =>
-  `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pokemonApiId}.png`;
+import { PokemonImage } from './PokemonImage';
 
 export default async function ListPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -50,12 +47,7 @@ export default async function ListPage({ params }: { params: Promise<{ id: strin
             key={item.id}
             className="flex flex-col items-center gap-2 p-4 border border-gray-600 rounded-lg"
           >
-            <Image
-              src={spriteUrl(item.pokemonApiId)}
-              alt={item.name}
-              width={80}
-              height={80}
-            />
+            <PokemonImage pokemonApiId={item.pokemonApiId} name={item.name} />
             <span className="capitalize font-medium">{item.name}</span>
             <span className="text-gray-400 text-sm">{item.weight} hg</span>
           </li>

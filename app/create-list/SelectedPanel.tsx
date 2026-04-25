@@ -1,11 +1,41 @@
 'use client';
 
 import Image from 'next/image';
+import { useState } from 'react';
 import CountUp from 'react-countup';
 import type { SelectedPokemon } from './types';
 
-const spriteUrl = (pokemonApiId: number) =>
-  `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pokemonApiId}.png`;
+const PokemonChip = ({ pokemon, onToggle }: { pokemon: SelectedPokemon; onToggle: (p: SelectedPokemon) => void }) => {
+  const [imgError, setImgError] = useState(false);
+  const spriteUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pokemon.pokemonApiId}.png`;
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      aria-label={`Remove ${pokemon.name}`}
+      className='flex h-fit items-center gap-2 px-3 py-1 border border-white rounded-lg capitalize text-white cursor-pointer hover:border-red-400 hover:text-red-400 transition-all duration-300'
+      onClick={() => onToggle(pokemon)}
+      onKeyDown={e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onToggle(pokemon);
+        }
+      }}
+    >
+      {imgError
+        ? <svg aria-hidden="true" width="30" height="30" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="30" cy="30" r="22" stroke="currentColor" strokeWidth="2.5" />
+            <rect x="27" y="15" width="6" height="18" rx="3" fill="currentColor" />
+            <circle cx="30" cy="40" r="3.5" fill="currentColor" />
+          </svg>
+        : <Image src={spriteUrl} alt={pokemon.name} width={30} height={30} onError={() => setImgError(true)} />
+      }
+      <span className='text-sm'>{pokemon.name}</span>
+    </div>
+  );
+};
+
 
 interface Props {
   selected: SelectedPokemon[];
@@ -67,23 +97,7 @@ export const SelectedPanel = ({
       )}
       <div className='flex gap-4 flex-wrap grow mt-3'>
         {selected.map(pokemon => (
-          <div
-            key={pokemon.name}
-            role="button"
-            tabIndex={0}
-            aria-label={`Remove ${pokemon.name}`}
-            className='flex h-fit items-center gap-2 px-3 py-1 border border-white rounded-lg capitalize text-white cursor-pointer hover:border-red-400 hover:text-red-400 transition-all duration-300'
-            onClick={() => onToggle(pokemon)}
-            onKeyDown={e => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                onToggle(pokemon);
-              }
-            }}
-          >
-            <Image src={spriteUrl(pokemon.pokemonApiId)} alt={pokemon.name} width={30} height={30} />
-            <span className='text-sm'>{pokemon.name}</span>
-          </div>
+          <PokemonChip key={pokemon.name} pokemon={pokemon} onToggle={onToggle} />
         ))}
       </div>
       <div className='w-full flex flex-col items-center gap-2 mt-4'>
